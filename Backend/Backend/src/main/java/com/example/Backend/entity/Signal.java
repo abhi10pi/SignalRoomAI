@@ -34,7 +34,7 @@ public class Signal extends BaseEntity{
     @Column(name = "resolution_type", nullable = false)
     private ResolutionType resolutionType;
 
-    @Column(name = "resolution_criteria", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "resolution_criteria", columnDefinition = "TEXT", nullable = false)
     private String resolutionCriteria;
 
     @Column(name = "resolution_date", nullable = false)

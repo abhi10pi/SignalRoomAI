@@ -1,95 +1,3 @@
-// "use client";
-
-// import { useState } from "react";
-// import { useRouter } from "next/navigation";
-// import Link from "next/link";
-// import { loginApi } from "@/service/auth";
-// import { useAuth } from "@/context/AuthContext";
-
-// export default function LoginPage() {
-//   const router = useRouter();
-//   const { login } = useAuth();
-//   const [form, setForm] = useState({ email: "", password: "" });
-//   const [error, setError] = useState("");
-//   const [loading, setLoading] = useState(false);
-
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     setError("");
-//     setLoading(true);
-//     try {
-//       const data = await loginApi(form);
-//       login(data);
-//       router.push("/");
-//     } catch (err: unknown) {
-//       const msg =
-//         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-//         "Invalid email or password";
-//       setError(msg);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <main className="flex min-h-screen items-center justify-center bg-gray-50">
-//       <div className="w-full max-w-md rounded-2xl border bg-white p-8 shadow-sm">
-//         <h1 className="mb-1 text-2xl font-bold text-gray-900">Sign in</h1>
-//         <p className="mb-6 text-sm text-gray-500">Welcome back to Signalroom</p>
-
-//         {error && (
-//           <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-//             {error}
-//           </div>
-//         )}
-
-//         <form onSubmit={handleSubmit} className="space-y-4">
-//           <div>
-//             <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
-//             <input
-//               type="email"
-//               required
-//               value={form.email}
-//               onChange={(e) => setForm({ ...form, email: e.target.value })}
-//               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
-//               placeholder="you@example.com"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-//             <input
-//               type="password"
-//               required
-//               value={form.password}
-//               onChange={(e) => setForm({ ...form, password: e.target.value })}
-//               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
-//               placeholder="••••••••"
-//             />
-//           </div>
-
-//           <button
-//             type="submit"
-//             disabled={loading}
-//             className="w-full rounded-lg bg-black py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
-//           >
-//             {loading ? "Signing in..." : "Sign in"}
-//           </button>
-//         </form>
-
-//         <p className="mt-6 text-center text-sm text-gray-500">
-//           Don&apos;t have an account?{" "}
-//           <Link href="/auth/register" className="font-medium text-black hover:underline">
-//             Sign up
-//           </Link>
-//         </p>
-//       </div>
-//     </main>
-//   );
-// }
-
-
-
 "use client";
 
 import { useState } from "react";
@@ -104,7 +12,7 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -114,9 +22,10 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
+      logout();
       const data = await loginApi(form);
       login(data);
-      router.push("/");
+      router.push("/home");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
