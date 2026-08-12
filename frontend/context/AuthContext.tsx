@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { AuthResponse } from "@/service/auth";
 
 interface AuthUser {
@@ -21,13 +21,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
+function loadUser(): AuthUser | null {
+  if (typeof window === "undefined") return null;
+  try {
     const stored = localStorage.getItem("auth");
-    if (stored) setUser(JSON.parse(stored));
-  }, []);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(loadUser);
 
   const login = (data: AuthResponse) => {
     const authUser: AuthUser = {
