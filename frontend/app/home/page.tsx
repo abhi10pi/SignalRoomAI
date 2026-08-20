@@ -37,20 +37,18 @@ export default function HomePage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = typeof window !== "undefined";
 
-  useEffect(() => {
-    if (!isAuthenticated) { router.push("/auth/login"); return; }
-    setMounted(true);
-    load();
-  }, [isAuthenticated]);
-
-  const load = () => {
-    setLoading(true);
+  function load() {
     getMySignals()
       .then(setSignals)
       .finally(() => setLoading(false));
-  };
+  }
+
+  useEffect(() => {
+    if (!isAuthenticated) { router.push("/auth/login"); return; }
+    load();
+  }, [isAuthenticated, router]);
 
   const handlePublish = async (id: string) => {
     setActionId(id);

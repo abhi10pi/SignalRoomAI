@@ -24,8 +24,10 @@ export interface SignalDetail extends SignalSummary {
   submitterId: string;
   domainId: string;
   updatedAt: string;
+    actualOutcome: Outcome | null;
 }
 
+export type Outcome = "TRUE" | "FALSE" | "AMBIGUOUS";
 export interface PageResponse<T> {
   content: T[];
   totalElements: number;
@@ -44,7 +46,7 @@ export interface CreateSignalPayload {
   visibility: Visibility;
 }
 
-export interface UpdateSignalPayload extends Partial<CreateSignalPayload> {}
+export type UpdateSignalPayload = Partial<CreateSignalPayload>;
 
 export const createSignal = (data: CreateSignalPayload) =>
   api.post<SignalDetail>("/api/signals", data).then((r) => r.data);

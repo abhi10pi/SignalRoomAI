@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -33,7 +34,17 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/health", "/api/auth/**").permitAll()
-                        .anyRequest().permitAll() // TEMPORARY — will tighten once roles are wired into controllers
+                    .requestMatchers("/api/signals/my-validations", "/api/users/me/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/signals").authenticated()
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/signals/*/resolve").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/signals/*/approve", "/api/signals/*/reject")
+                    .hasAnyRole("CONSULTANT", "ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/signals/*/validate")
+                    .hasAnyRole("CONSULTANT", "ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/signals", "/api/signals/**", "/api/domains/**", "/api/users/*")
+                    .permitAll()
+                    .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

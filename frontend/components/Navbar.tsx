@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { IBM_Plex_Mono, Source_Serif_4 } from "next/font/google";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const serif = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
@@ -13,9 +13,7 @@ export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const path = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   const handleLogout = () => {
     logout();
@@ -55,6 +53,8 @@ export default function Navbar() {
           <>
             {navLink("/home", "MY SIGNALS")}
             {navLink("/signals", "PUBLIC FEED")}
+                        {user?.role === "CONSULTANT" && navLink("/validations", "MY VALIDATIONS")}
+                        {user?.role === "ADMIN" && navLink("/admin", "ADMIN PANEL")}
             <Link
               href="/signals/create"
               className={`${mono.className} border border-[#1C2541] px-3 py-1.5 text-[11px] tracking-widest hover:bg-[#1C2541] hover:text-[#F5F5F1] transition-colors`}
