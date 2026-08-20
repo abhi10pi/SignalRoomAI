@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 public interface SignalRepository extends JpaRepository<Signal, UUID> {
 
@@ -20,6 +21,9 @@ public interface SignalRepository extends JpaRepository<Signal, UUID> {
     List<Signal> findBySubmitterIdAndStatus(UUID submitterId, SignalStatus status);
 
     List<Signal> findByStatus(SignalStatus status);
+
+    List<Signal> findByStatusInAndResolutionDateBefore(
+           List<SignalStatus> statuses, LocalDateTime cutoff);
 
     List<Signal> findByDomainId(UUID domainId);
 

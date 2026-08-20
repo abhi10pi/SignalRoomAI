@@ -1,5 +1,6 @@
 package com.example.Backend.dto.response;
 
+import com.example.Backend.enums.Outcome;
 import com.example.Backend.enums.ResolutionType;
 import com.example.Backend.enums.SignalStatus;
 import com.example.Backend.enums.Visibility;
@@ -18,8 +19,10 @@ public class SignalResponse {
     private SignalStatus status;
     private Visibility visibility;
     private LocalDateTime submittedAt;
+    private LocalDateTime evaluatedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Outcome actualOutcome;
 
     // submitter
     private UUID submitterId;
@@ -48,6 +51,10 @@ public class SignalResponse {
     public void setVisibility(Visibility visibility) { this.visibility = visibility; }
     public LocalDateTime getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    public LocalDateTime getEvaluatedAt() { return evaluatedAt; }
+    public void setEvaluatedAt(LocalDateTime evaluatedAt) { this.evaluatedAt = evaluatedAt; }
+    public Outcome getActualOutcome() { return actualOutcome; }
+    public void setActualOutcome(Outcome actualOutcome) { this.actualOutcome = actualOutcome; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

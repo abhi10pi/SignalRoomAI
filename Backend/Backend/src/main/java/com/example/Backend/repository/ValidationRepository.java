@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface ValidationRepository extends JpaRepository<Validation, UUID> {
     List<Validation> findBySignalId(UUID signalId);
     List<Validation> findByConsultantId(UUID consultantId);
+    List<Validation> findByConsultantIdAndSignalDomainId(UUID consultantId, UUID domainId);
     Optional<Validation> findBySignalIdAndConsultantId(UUID signalId, UUID consultantId);
     long countBySignalId(UUID signalId);
 }

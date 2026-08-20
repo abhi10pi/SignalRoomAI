@@ -37,6 +37,10 @@ public class Validation extends BaseEntity {
     @Column(name = "was_correct")
     private Boolean wasCorrect;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resolved_outcome")
+    private Outcome resolvedOutcome;
+
     public UUID getId() { return id; }
     public Signal getSignal() { return signal; }
     public void setSignal(Signal signal) { this.signal = signal; }
@@ -50,4 +54,6 @@ public class Validation extends BaseEntity {
     public void setThesis(String thesis) { this.thesis = thesis; }
     public Boolean getWasCorrect() { return wasCorrect; }
     public void setWasCorrect(Boolean wasCorrect) { this.wasCorrect = wasCorrect; }
+    public Outcome getResolvedOutcome() { return resolvedOutcome; }
+    public void setResolvedOutcome(Outcome resolvedOutcome) { this.resolvedOutcome = resolvedOutcome; }
 }

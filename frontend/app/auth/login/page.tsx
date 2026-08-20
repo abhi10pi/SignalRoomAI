@@ -28,7 +28,8 @@ export default function LoginPage() {
       router.push("/home");
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.error ||
+        (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message ||
         "Invalid email or password";
       setError(msg);
     } finally {

@@ -7,6 +7,11 @@ const api = axios.create({
   },
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => Promise.reject(error)
+);
+
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const stored = localStorage.getItem("auth");

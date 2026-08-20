@@ -18,7 +18,9 @@ public class SignalMapper {
         r.setResolutionDate(s.getResolutionDate());
         r.setStatus(s.getStatus());
         r.setVisibility(s.getVisibility());
+        r.setActualOutcome(s.getActualOutcome());
         r.setSubmittedAt(s.getSubmittedAt());
+        r.setEvaluatedAt(s.getEvaluatedAt());
         r.setCreatedAt(s.getCreatedAt());
         r.setUpdatedAt(s.getUpdatedAt());
         r.setSubmitterId(s.getSubmitter().getId());
