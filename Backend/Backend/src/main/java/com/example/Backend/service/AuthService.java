@@ -11,6 +11,8 @@ import com.example.Backend.security.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class AuthService {
 
@@ -54,6 +56,23 @@ public class AuthService {
         }
 
         return buildAuthResponse(user);
+    }
+
+    public AuthResponse refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank() || !jwtTokenProvider.validateToken(refreshToken)) {
+            throw new RuntimeException("Invalid refresh token");
+        }
+
+        UUID userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return buildAuthResponse(user);
+    }
+
+    public User getCurrentUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     private AuthResponse buildAuthResponse(User user) {

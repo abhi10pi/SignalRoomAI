@@ -1,49 +1,48 @@
 package com.example.Backend.dto.request;
 
-import com.example.Backend.enums.ResolutionType;
-import com.example.Backend.enums.Visibility;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CreateSignalRequest {
 
     @NotBlank
+    @Size(max = 300)
     private String title;
 
     @NotBlank
     private String description;
 
-    @NotNull
-    private UUID domainId;
-
-    @NotNull
-    private ResolutionType resolutionType;
-
     @NotBlank
-    private String resolutionCriteria;
+    private String category;
 
-    @NotNull
-    @Future
-    private LocalDateTime resolutionDate;
+    private List<String> tags = new ArrayList<>();
 
-    private Visibility visibility = Visibility.PUBLIC;
+    private List<SourceRequest> sources = new ArrayList<>();
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public UUID getDomainId() { return domainId; }
-    public void setDomainId(UUID domainId) { this.domainId = domainId; }
-    public ResolutionType getResolutionType() { return resolutionType; }
-    public void setResolutionType(ResolutionType resolutionType) { this.resolutionType = resolutionType; }
-    public String getResolutionCriteria() { return resolutionCriteria; }
-    public void setResolutionCriteria(String resolutionCriteria) { this.resolutionCriteria = resolutionCriteria; }
-    public LocalDateTime getResolutionDate() { return resolutionDate; }
-    public void setResolutionDate(LocalDateTime resolutionDate) { this.resolutionDate = resolutionDate; }
-    public Visibility getVisibility() { return visibility; }
-    public void setVisibility(Visibility visibility) { this.visibility = visibility; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+    public List<String> getTags() { return tags; }
+    public void setTags(List<String> tags) { this.tags = tags; }
+    public List<SourceRequest> getSources() { return sources; }
+    public void setSources(List<SourceRequest> sources) { this.sources = sources; }
+
+    public static class SourceRequest {
+        private String url;
+        private String title;
+        private String description;
+
+        public String getUrl() { return url; }
+        public void setUrl(String url) { this.url = url; }
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+    }
 }

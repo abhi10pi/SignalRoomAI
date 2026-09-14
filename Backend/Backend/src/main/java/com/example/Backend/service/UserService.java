@@ -51,7 +51,7 @@ public class UserService {
         r.setUsername(user.getUsername());
         r.setBio(user.getBio());
         r.setRole(user.getRole().name());
-        r.setTotalSignals(signalRepository.findBySubmitterId(user.getId()).size());
+            r.setTotalSignals(signalRepository.findByAuthorId(user.getId()).size());
         r.setTotalValidations(validationRepository.findByConsultantId(user.getId()).size());
         r.setCredibilityScores(scores.stream().map(this::toScoreResponse).collect(Collectors.toList()));
         return r;

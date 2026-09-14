@@ -9,7 +9,16 @@ const api = axios.create({
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    if (typeof window !== "undefined" && error.response?.status === 401) {
+      localStorage.removeItem("auth");
+      const pathname = window.location?.pathname ?? "";
+      if (!pathname.startsWith("/auth/")) {
+        window.location.assign("/auth/login");
+      }
+    }
+    return Promise.reject(error);
+  }
 );
 
 api.interceptors.request.use((config) => {

@@ -1,11 +1,9 @@
 package com.example.Backend.dto.response;
 
-import com.example.Backend.enums.Outcome;
-import com.example.Backend.enums.ResolutionType;
 import com.example.Backend.enums.SignalStatus;
-import com.example.Backend.enums.Visibility;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class SignalResponse {
@@ -13,25 +11,26 @@ public class SignalResponse {
     private UUID id;
     private String title;
     private String description;
-    private ResolutionType resolutionType;
-    private String resolutionCriteria;
-    private LocalDateTime resolutionDate;
+    private String category;
     private SignalStatus status;
-    private Visibility visibility;
-    private LocalDateTime submittedAt;
-    private LocalDateTime evaluatedAt;
+    private LocalDateTime discussionStart;
+    private LocalDateTime discussionEnd;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Outcome actualOutcome;
 
-    // submitter
-    private UUID submitterId;
-    private String submitterUsername;
+    private UUID authorId;
+    private String authorUsername;
 
-    // domain
-    private UUID domainId;
-    private String domainName;
-    private String domainSlug;
+    private List<String> tags;
+    private List<SourceResponse> sources;
+
+    // vote stats
+    private long upVotes;
+    private long downVotes;
+    private long totalVotes;
+    private double upPercent;
+    private double downPercent;
+    private String myVote; // UP, DOWN, or null
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -39,34 +38,52 @@ public class SignalResponse {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public ResolutionType getResolutionType() { return resolutionType; }
-    public void setResolutionType(ResolutionType resolutionType) { this.resolutionType = resolutionType; }
-    public String getResolutionCriteria() { return resolutionCriteria; }
-    public void setResolutionCriteria(String resolutionCriteria) { this.resolutionCriteria = resolutionCriteria; }
-    public LocalDateTime getResolutionDate() { return resolutionDate; }
-    public void setResolutionDate(LocalDateTime resolutionDate) { this.resolutionDate = resolutionDate; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
     public SignalStatus getStatus() { return status; }
     public void setStatus(SignalStatus status) { this.status = status; }
-    public Visibility getVisibility() { return visibility; }
-    public void setVisibility(Visibility visibility) { this.visibility = visibility; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
-    public LocalDateTime getEvaluatedAt() { return evaluatedAt; }
-    public void setEvaluatedAt(LocalDateTime evaluatedAt) { this.evaluatedAt = evaluatedAt; }
-    public Outcome getActualOutcome() { return actualOutcome; }
-    public void setActualOutcome(Outcome actualOutcome) { this.actualOutcome = actualOutcome; }
+    public LocalDateTime getDiscussionStart() { return discussionStart; }
+    public void setDiscussionStart(LocalDateTime discussionStart) { this.discussionStart = discussionStart; }
+    public LocalDateTime getDiscussionEnd() { return discussionEnd; }
+    public void setDiscussionEnd(LocalDateTime discussionEnd) { this.discussionEnd = discussionEnd; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-    public UUID getSubmitterId() { return submitterId; }
-    public void setSubmitterId(UUID submitterId) { this.submitterId = submitterId; }
-    public String getSubmitterUsername() { return submitterUsername; }
-    public void setSubmitterUsername(String submitterUsername) { this.submitterUsername = submitterUsername; }
-    public UUID getDomainId() { return domainId; }
-    public void setDomainId(UUID domainId) { this.domainId = domainId; }
-    public String getDomainName() { return domainName; }
-    public void setDomainName(String domainName) { this.domainName = domainName; }
-    public String getDomainSlug() { return domainSlug; }
-    public void setDomainSlug(String domainSlug) { this.domainSlug = domainSlug; }
+    public UUID getAuthorId() { return authorId; }
+    public void setAuthorId(UUID authorId) { this.authorId = authorId; }
+    public String getAuthorUsername() { return authorUsername; }
+    public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
+    public List<String> getTags() { return tags; }
+    public void setTags(List<String> tags) { this.tags = tags; }
+    public List<SourceResponse> getSources() { return sources; }
+    public void setSources(List<SourceResponse> sources) { this.sources = sources; }
+    public long getUpVotes() { return upVotes; }
+    public void setUpVotes(long upVotes) { this.upVotes = upVotes; }
+    public long getDownVotes() { return downVotes; }
+    public void setDownVotes(long downVotes) { this.downVotes = downVotes; }
+    public long getTotalVotes() { return totalVotes; }
+    public void setTotalVotes(long totalVotes) { this.totalVotes = totalVotes; }
+    public double getUpPercent() { return upPercent; }
+    public void setUpPercent(double upPercent) { this.upPercent = upPercent; }
+    public double getDownPercent() { return downPercent; }
+    public void setDownPercent(double downPercent) { this.downPercent = downPercent; }
+    public String getMyVote() { return myVote; }
+    public void setMyVote(String myVote) { this.myVote = myVote; }
+
+    public static class SourceResponse {
+        private UUID id;
+        private String url;
+        private String title;
+        private String description;
+
+        public UUID getId() { return id; }
+        public void setId(UUID id) { this.id = id; }
+        public String getUrl() { return url; }
+        public void setUrl(String url) { this.url = url; }
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+    }
 }

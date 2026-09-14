@@ -1,17 +1,17 @@
 app:
   jwt:
-    secret: "aka4230!!#**00hdkk123&#&@jsksaka!@#$(887Hhbhhkask3"
-    access-token-expiration-ms: 3600000
-    refresh-token-expiration-ms: 604800000
+    secret: ${JWT_SECRET:change-me-in-production}
+    access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:3600000}
+    refresh-token-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
 
 spring:
   application:
     name: Backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/signalroom
-    username: postgres
-    password: "@Postgre7498"
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:signalroom}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -19,7 +19,7 @@ spring:
       ddl-auto: validate
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -30,4 +30,4 @@ spring:
     clean-disabled: false
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}

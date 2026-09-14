@@ -5,12 +5,14 @@ import com.example.Backend.dto.response.ValidationResponse;
 import com.example.Backend.entity.Signal;
 import com.example.Backend.entity.User;
 import com.example.Backend.entity.Validation;
+import com.example.Backend.enums.Outcome;
 import com.example.Backend.enums.SignalStatus;
 import com.example.Backend.exception.ResourceNotFoundException;
 import com.example.Backend.repository.SignalRepository;
 import com.example.Backend.repository.UserRepository;
 import com.example.Backend.repository.ValidationRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,105 +22,120 @@ import java.util.stream.Collectors;
 @Service
 public class ValidationService {
 
-    private final ValidationRepository validationRepository;
     private final SignalRepository signalRepository;
     private final UserRepository userRepository;
+    private final ValidationRepository validationRepository;
 
-    public ValidationService(ValidationRepository validationRepository,
-                              SignalRepository signalRepository,
-                              UserRepository userRepository) {
-        this.validationRepository = validationRepository;
+    public ValidationService(SignalRepository signalRepository,
+                             UserRepository userRepository,
+                             ValidationRepository validationRepository) {
         this.signalRepository = signalRepository;
         this.userRepository = userRepository;
+        this.validationRepository = validationRepository;
     }
 
-    /**
-     * Submit validation for a signal.
-     * Allows validations on PENDING_VALIDATION or VALIDATED status (ongoing consultations allowed).
-     * Does NOT allow validations after EVALUATED status.
-     */
+    @Transactional
     public ValidationResponse submitValidation(UUID signalId, UUID consultantId, ValidationRequest req) {
         Signal signal = signalRepository.findById(signalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
+        User consultant = userRepository.findById(consultantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Consultant not found"));
 
-        // Allow validations until the signal is resolved (EVALUATED)
-        if (signal.getStatus() == SignalStatus.EVALUATED || signal.getStatus() == SignalStatus.REJECTED)
-            throw new IllegalArgumentException("Signal is closed for further validations");
-
-        if (signal.getStatus() != SignalStatus.PENDING_VALIDATION && signal.getStatus() != SignalStatus.VALIDATED)
-            throw new IllegalArgumentException("Signal is not open for validation");
-
-        if (signal.getSubmitter().getId().equals(consultantId))
-            throw new IllegalArgumentException("Cannot validate your own signal");
-
-        // Allow same consultant to update their validation
-        var existing = validationRepository.findBySignalIdAndConsultantId(signalId, consultantId);
-        if (existing.isPresent()) {
-            Validation v = existing.get();
-            v.setPredictedOutcome(req.getPredictedOutcome());
-            v.setConfidence(req.getConfidence());
-            v.setThesis(req.getThesis());
-            return toResponse(validationRepository.save(v));
+        if (signal.getStatus() == SignalStatus.CLOSED || signal.getStatus() == SignalStatus.FAILED || signal.getStatus() == SignalStatus.VALIDATED || signal.getStatus() == SignalStatus.REJECTED) {
+            throw new IllegalArgumentException("Validation is closed for this signal");
         }
 
-        User consultant = userRepository.findById(consultantId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Validation validation = validationRepository.findBySignalIdAndConsultantId(signalId, consultantId)
+                .orElse(new Validation());
+        validation.setSignal(signal);
+        validation.setConsultant(consultant);
+        validation.setPredictedOutcome(req.getPredictedOutcome());
+        validation.setConfidence(req.getConfidence());
+        validation.setThesis(req.getThesis());
+        validation.setWasCorrect(null);
+        validation.setResolvedOutcome(null);
 
-        Validation v = new Validation();
-        v.setSignal(signal);
-        v.setConsultant(consultant);
-        v.setPredictedOutcome(req.getPredictedOutcome());
-        v.setConfidence(req.getConfidence());
-        v.setThesis(req.getThesis());
-
-        return toResponse(validationRepository.save(v));
+        Validation saved = validationRepository.save(validation);
+        signal.setStatus(SignalStatus.PENDING_VALIDATION);
+        signalRepository.save(signal);
+        return toResponse(saved);
     }
 
-    public List<ValidationResponse> getValidationsForSignal(UUID signalId) {
-        if (!signalRepository.existsById(signalId))
-            throw new ResourceNotFoundException("Signal not found");
+    public List<ValidationResponse> getValidations(UUID signalId) {
         return validationRepository.findBySignalId(signalId).stream()
-                .map(this::toResponse).collect(Collectors.toList());
-    }
-
-    /**
-     * Approve signal for resolution - moves to VALIDATED status if currently PENDING_VALIDATION.
-     * Any number of consultants can continue validating after this point.
-     */
-    public void approveSignal(UUID signalId) {
-        Signal signal = signalRepository.findById(signalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
-        if (signal.getStatus() != SignalStatus.PENDING_VALIDATION)
-            throw new IllegalArgumentException("Signal is not pending validation");
-        signal.setStatus(SignalStatus.VALIDATED);
-        signalRepository.save(signal);
-    }
-
-    public void rejectSignal(UUID signalId) {
-        Signal signal = signalRepository.findById(signalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
-        if (signal.getStatus() != SignalStatus.PENDING_VALIDATION)
-            throw new IllegalArgumentException("Signal is not pending validation");
-        signal.setStatus(SignalStatus.REJECTED);
-        signalRepository.save(signal);
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     public List<ValidationResponse> getMyValidations(UUID consultantId) {
         return validationRepository.findByConsultantId(consultantId).stream()
-                .map(this::toResponse).collect(Collectors.toList());
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
-    private ValidationResponse toResponse(Validation v) {
-        ValidationResponse r = new ValidationResponse();
-        r.setId(v.getId());
-        r.setSignalId(v.getSignal().getId());
-        r.setConsultantId(v.getConsultant().getId());
-        r.setConsultantUsername(v.getConsultant().getUsername());
-        r.setPredictedOutcome(v.getPredictedOutcome());
-        r.setConfidence(v.getConfidence());
-        r.setThesis(v.getThesis());
-        r.setWasCorrect(v.getWasCorrect());
-        r.setCreatedAt(v.getCreatedAt());
-        return r;
+    @Transactional
+    public ValidationResponse approveSignal(UUID signalId) {
+        Signal signal = signalRepository.findById(signalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
+
+        signal.setStatus(SignalStatus.VALIDATED);
+        signal.setDiscussionEnd(LocalDateTime.now());
+        signalRepository.save(signal);
+
+        return toResponse(validationRepository.findBySignalId(signalId).stream().findFirst().orElse(null));
+    }
+
+    @Transactional
+    public ValidationResponse rejectSignal(UUID signalId) {
+        Signal signal = signalRepository.findById(signalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
+
+        signal.setStatus(SignalStatus.REJECTED);
+        signal.setDiscussionEnd(LocalDateTime.now());
+        signalRepository.save(signal);
+
+        return toResponse(validationRepository.findBySignalId(signalId).stream().findFirst().orElse(null));
+    }
+
+    @Transactional
+    public ValidationResponse resolveSignal(UUID signalId, Outcome actualOutcome) {
+        Signal signal = signalRepository.findById(signalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
+
+        if (signal.getStatus() != SignalStatus.PENDING_VALIDATION && signal.getStatus() != SignalStatus.VALIDATED) {
+            throw new IllegalArgumentException("Signal is not pending validation");
+        }
+
+        signal.setStatus(SignalStatus.CLOSED);
+        signal.setDiscussionEnd(LocalDateTime.now());
+        signalRepository.save(signal);
+
+        List<Validation> validations = validationRepository.findBySignalId(signalId);
+        for (Validation validation : validations) {
+            validation.setResolvedOutcome(actualOutcome);
+            validation.setWasCorrect(validation.getPredictedOutcome() == actualOutcome);
+            validationRepository.save(validation);
+        }
+
+        return validations.isEmpty() ? null : toResponse(validations.get(0));
+    }
+
+    private ValidationResponse toResponse(Validation validation) {
+        if (validation == null) {
+            return null;
+        }
+
+        ValidationResponse response = new ValidationResponse();
+        response.setId(validation.getId());
+        response.setSignalId(validation.getSignal().getId());
+        response.setSignalTitle(validation.getSignal().getTitle());
+        response.setConsultantId(validation.getConsultant().getId());
+        response.setConsultantUsername(validation.getConsultant().getUsername());
+        response.setPredictedOutcome(validation.getPredictedOutcome());
+        response.setConfidence(validation.getConfidence());
+        response.setThesis(validation.getThesis());
+        response.setWasCorrect(validation.getWasCorrect());
+        response.setCreatedAt(validation.getCreatedAt());
+        return response;
     }
 }

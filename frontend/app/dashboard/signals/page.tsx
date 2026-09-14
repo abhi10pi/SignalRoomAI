@@ -94,7 +94,7 @@ export default function MySignalsPage() {
                         <div>
                           <p className="text-[14px] font-semibold leading-snug">{s.title}</p>
                           <p className={`${mono.className} mt-1 text-[10px] tracking-wide text-[#5B6472]`}>
-                            {s.domainName} · resolves {new Date(s.resolutionDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                            {s.category || s.domainName || "General"} · resolves {new Date(s.discussionEnd || s.resolutionDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
                           </p>
                         </div>
                         <span className={`${mono.className} shrink-0 text-[10px] tracking-widest ${STATUS_COLORS[s.status]}`}>

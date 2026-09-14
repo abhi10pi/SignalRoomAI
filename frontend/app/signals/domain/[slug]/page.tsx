@@ -38,7 +38,7 @@ export default function DomainFeedPage() {
                   <div className={`${mono.className} text-[10px] tracking-wide text-[#5B6472]`}>@{s.submitterUsername}</div>
                 </div>
                 <p className={`${mono.className} mt-2 text-[10px] tracking-wide text-[#5B6472]`}>
-                  {s.status.replace(/_/g, " ")} · resolves {new Date(s.resolutionDate).toLocaleDateString()}
+                  {s.status.replace(/_/g, " ")} · resolves {new Date(s.discussionEnd || s.resolutionDate).toLocaleDateString()}
                 </p>
               </Link>
             ))}
