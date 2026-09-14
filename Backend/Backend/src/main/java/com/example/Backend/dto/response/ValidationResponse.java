@@ -8,6 +8,7 @@ import java.util.UUID;
 public class ValidationResponse {
     private UUID id;
     private UUID signalId;
+    private String signalTitle;
     private UUID consultantId;
     private String consultantUsername;
     private Outcome predictedOutcome;
@@ -20,6 +21,8 @@ public class ValidationResponse {
     public void setId(UUID id) { this.id = id; }
     public UUID getSignalId() { return signalId; }
     public void setSignalId(UUID signalId) { this.signalId = signalId; }
+    public String getSignalTitle() { return signalTitle; }
+    public void setSignalTitle(String signalTitle) { this.signalTitle = signalTitle; }
     public UUID getConsultantId() { return consultantId; }
     public void setConsultantId(UUID consultantId) { this.consultantId = consultantId; }
     public String getConsultantUsername() { return consultantUsername; }

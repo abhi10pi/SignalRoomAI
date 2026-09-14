@@ -1,28 +1,24 @@
 package com.example.Backend.entity;
 
-import com.example.Backend.enums.Outcome;
-import com.example.Backend.enums.ResolutionType;
 import com.example.Backend.enums.SignalStatus;
-import com.example.Backend.enums.Visibility;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "signals")
-public class Signal extends BaseEntity{
+public class Signal extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "submitter_id",nullable = false)
-    private User submitter;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "domain_id",nullable = false)
-    private Domain domain;
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
 
     @Column(nullable = false)
     private String title;
@@ -30,62 +26,40 @@ public class Signal extends BaseEntity{
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "resolution_type", nullable = false)
-    private ResolutionType resolutionType;
-
-    @Column(name = "resolution_criteria", columnDefinition = "TEXT", nullable = false)
-    private String resolutionCriteria;
-
-    @Column(name = "resolution_date", nullable = false)
-    private LocalDateTime resolutionDate;
+    @Column(nullable = false)
+    private String category;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SignalStatus status = SignalStatus.DRAFT;
+    private SignalStatus status = SignalStatus.OPEN;
 
-    @Column(nullable = false)
-    private boolean contested = false;
+    @Column(name = "discussion_start", nullable = false)
+    private LocalDateTime discussionStart = LocalDateTime.now();
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "actual_outcome")
-    private Outcome actualOutcome;
+    @Column(name = "discussion_end", nullable = false)
+    private LocalDateTime discussionEnd;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Visibility visibility = Visibility.PUBLIC;
+    @OneToMany(mappedBy = "signal", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SignalTag> signalTags = new ArrayList<>();
 
-    @Column(name = "submitted_at")
-    private LocalDateTime submittedAt;
-
-    @Column(name = "evaluated_at")
-    private LocalDateTime evaluatedAt;
+    @OneToMany(mappedBy = "signal", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SignalSource> sources = new ArrayList<>();
 
     public UUID getId() { return id; }
-    public User getSubmitter() { return submitter; }
-    public void setSubmitter(User submitter) { this.submitter = submitter; }
-    public Domain getDomain() { return domain; }
-    public void setDomain(Domain domain) { this.domain = domain; }
+    public User getAuthor() { return author; }
+    public void setAuthor(User author) { this.author = author; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public ResolutionType getResolutionType() { return resolutionType; }
-    public void setResolutionType(ResolutionType resolutionType) { this.resolutionType = resolutionType; }
-    public String getResolutionCriteria() { return resolutionCriteria; }
-    public void setResolutionCriteria(String resolutionCriteria) { this.resolutionCriteria = resolutionCriteria; }
-    public LocalDateTime getResolutionDate() { return resolutionDate; }
-    public void setResolutionDate(LocalDateTime resolutionDate) { this.resolutionDate = resolutionDate; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
     public SignalStatus getStatus() { return status; }
     public void setStatus(SignalStatus status) { this.status = status; }
-    public boolean isContested() { return contested; }
-    public void setContested(boolean contested) { this.contested = contested; }
-    public Outcome getActualOutcome() { return actualOutcome; }
-    public void setActualOutcome(Outcome actualOutcome) { this.actualOutcome = actualOutcome; }
-    public Visibility getVisibility() { return visibility; }
-    public void setVisibility(Visibility visibility) { this.visibility = visibility; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
-    public LocalDateTime getEvaluatedAt() { return evaluatedAt; }
-    public void setEvaluatedAt(LocalDateTime evaluatedAt) { this.evaluatedAt = evaluatedAt; }
+    public LocalDateTime getDiscussionStart() { return discussionStart; }
+    public void setDiscussionStart(LocalDateTime discussionStart) { this.discussionStart = discussionStart; }
+    public LocalDateTime getDiscussionEnd() { return discussionEnd; }
+    public void setDiscussionEnd(LocalDateTime discussionEnd) { this.discussionEnd = discussionEnd; }
+    public List<SignalTag> getSignalTags() { return signalTags; }
+    public List<SignalSource> getSources() { return sources; }
 }

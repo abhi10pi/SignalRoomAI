@@ -95,11 +95,11 @@ public class AdminController {
             result.put("id", signal.getId());
             result.put("title", signal.getTitle());
             result.put("status", signal.getStatus().toString());
-            result.put("submitterUsername", signal.getSubmitter().getUsername());
-            result.put("domainName", signal.getDomain().getName());
-            result.put("resolutionDate", signal.getResolutionDate());
+            result.put("submitterUsername", signal.getAuthor().getUsername());
+            result.put("domainName", signal.getCategory());
+            result.put("resolutionDate", signal.getDiscussionEnd());
             result.put("validationCount", validationCount);
-            result.put("actualOutcome", signal.getActualOutcome() != null ? signal.getActualOutcome() : "");
+            result.put("actualOutcome", "");
             return result;
         }).toList();
     }

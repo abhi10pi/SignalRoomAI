@@ -2,9 +2,12 @@ package com.example.Backend.enums;
 
 public enum SignalStatus {
     DRAFT,
+    OPEN,
+    PROCESSING,
     PENDING_VALIDATION,
     VALIDATED,
     REJECTED,
-    EVALUATED,
-    EXPIRED_UNRESOLVED
+    CLOSED,
+    FAILED,
+    ARCHIVED
 }

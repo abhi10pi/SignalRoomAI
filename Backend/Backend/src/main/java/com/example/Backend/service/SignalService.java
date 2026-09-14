@@ -1,28 +1,20 @@
 package com.example.Backend.service;
 
 import com.example.Backend.dto.request.CreateSignalRequest;
-import com.example.Backend.dto.request.UpdateSignalRequest;
 import com.example.Backend.dto.response.SignalResponse;
 import com.example.Backend.dto.response.SignalSummaryResponse;
-import com.example.Backend.entity.Domain;
-import com.example.Backend.entity.Signal;
-import com.example.Backend.entity.User;
+import com.example.Backend.entity.*;
 import com.example.Backend.enums.SignalStatus;
+import com.example.Backend.enums.VoteType;
 import com.example.Backend.exception.ResourceNotFoundException;
 import com.example.Backend.exception.UnauthorizedException;
-import com.example.Backend.mapper.SignalMapper;
-import com.example.Backend.repository.DomainRepository;
-import com.example.Backend.repository.SignalRepository;
-import com.example.Backend.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import com.example.Backend.repository.*;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,112 +22,166 @@ public class SignalService {
 
     private final SignalRepository signalRepository;
     private final UserRepository userRepository;
-    private final DomainRepository domainRepository;
-    private final SignalMapper signalMapper;
+    private final TagRepository tagRepository;
+    private final SignalVoteRepository signalVoteRepository;
 
     public SignalService(SignalRepository signalRepository, UserRepository userRepository,
-                         DomainRepository domainRepository, SignalMapper signalMapper) {
+                         TagRepository tagRepository, SignalVoteRepository signalVoteRepository) {
         this.signalRepository = signalRepository;
         this.userRepository = userRepository;
-        this.domainRepository = domainRepository;
-        this.signalMapper = signalMapper;
+        this.tagRepository = tagRepository;
+        this.signalVoteRepository = signalVoteRepository;
     }
 
-    public SignalResponse createDraft(UUID userId, CreateSignalRequest req) {
+    @Transactional
+    public SignalResponse createSignal(UUID userId, CreateSignalRequest req) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        Domain domain = domainRepository.findById(req.getDomainId())
-                .orElseThrow(() -> new ResourceNotFoundException("Domain not found"));
 
         Signal signal = new Signal();
-        signal.setSubmitter(user);
-        signal.setDomain(domain);
+        signal.setAuthor(user);
         signal.setTitle(req.getTitle());
         signal.setDescription(req.getDescription());
-        signal.setResolutionType(req.getResolutionType());
-        signal.setResolutionCriteria(req.getResolutionCriteria());
-        signal.setResolutionDate(req.getResolutionDate());
-        signal.setVisibility(req.getVisibility());
-        signal.setStatus(SignalStatus.DRAFT);
+        signal.setCategory(req.getCategory());
+        signal.setStatus(SignalStatus.OPEN);
+        signal.setDiscussionStart(LocalDateTime.now());
+        signal.setDiscussionEnd(LocalDateTime.now().plusDays(7));
 
-        return signalMapper.toResponse(signalRepository.save(signal));
-    }
-
-    public SignalResponse updateDraft(UUID signalId, UUID userId, UpdateSignalRequest req) {
-        Signal signal = getOwnedDraft(signalId, userId);
-
-        if (req.getTitle() != null) signal.setTitle(req.getTitle());
-        if (req.getDescription() != null) signal.setDescription(req.getDescription());
-        if (req.getResolutionType() != null) signal.setResolutionType(req.getResolutionType());
-        if (req.getResolutionCriteria() != null) signal.setResolutionCriteria(req.getResolutionCriteria());
-        if (req.getResolutionDate() != null) signal.setResolutionDate(req.getResolutionDate());
-        if (req.getVisibility() != null) signal.setVisibility(req.getVisibility());
-        if (req.getDomainId() != null) {
-            Domain domain = domainRepository.findById(req.getDomainId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Domain not found"));
-            signal.setDomain(domain);
+        // Tags
+        for (String tagName : req.getTags()) {
+            String normalized = tagName.trim().toLowerCase();
+            if (normalized.isEmpty()) continue;
+            Tag tag = tagRepository.findByName(normalized)
+                    .orElseGet(() -> { Tag t = new Tag(); t.setName(normalized); return tagRepository.save(t); });
+            SignalTag st = new SignalTag();
+            st.setSignal(signal);
+            st.setTag(tag);
+            signal.getSignalTags().add(st);
         }
 
-        return signalMapper.toResponse(signalRepository.save(signal));
-    }
-
-    public void deleteDraft(UUID signalId, UUID userId) {
-        Signal signal = getOwnedDraft(signalId, userId);
-        signalRepository.delete(signal);
-    }
-
-    public SignalResponse publishSignal(UUID signalId, UUID userId) {
-        Signal signal = getOwnedDraft(signalId, userId);
-
-        if (signal.getResolutionDate().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Resolution date must be in the future");
+        // Sources
+        for (CreateSignalRequest.SourceRequest sr : req.getSources()) {
+            if (sr.getUrl() == null || sr.getUrl().isBlank()) continue;
+            SignalSource ss = new SignalSource();
+            ss.setSignal(signal);
+            ss.setUrl(sr.getUrl());
+            ss.setTitle(sr.getTitle());
+            ss.setDescription(sr.getDescription());
+            signal.getSources().add(ss);
         }
 
-        signal.setStatus(SignalStatus.PENDING_VALIDATION);
-        signal.setSubmittedAt(LocalDateTime.now());
-
-        return signalMapper.toResponse(signalRepository.save(signal));
+        return toResponse(signalRepository.save(signal), null);
     }
 
-    public SignalResponse getSignal(UUID signalId) {
+    public SignalResponse getSignal(UUID signalId, UUID currentUserId) {
         Signal signal = signalRepository.findById(signalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
-        return signalMapper.toResponse(signal);
+        return toResponse(signal, currentUserId);
+    }
+
+    public Page<SignalSummaryResponse> getPublicFeed(int page, int size, String sort) {
+        Sort sortOrder = "oldest".equals(sort)
+                ? Sort.by("createdAt").ascending()
+                : Sort.by("createdAt").descending();
+        return signalRepository.findPublic(PageRequest.of(page, size, sortOrder))
+                .map(s -> toSummary(s));
+    }
+
+    public Page<SignalSummaryResponse> getByCategory(String category, int page, int size) {
+        return signalRepository.findPublicByCategory(category, PageRequest.of(page, size, Sort.by("createdAt").descending()))
+                .map(s -> toSummary(s));
+    }
+
+    public Page<SignalSummaryResponse> search(String q, int page, int size) {
+        return signalRepository.search(q, PageRequest.of(page, size, Sort.by("createdAt").descending()))
+                .map(s -> toSummary(s));
     }
 
     public List<SignalSummaryResponse> getMySignals(UUID userId) {
-        return signalRepository.findBySubmitterId(userId).stream()
-                .map(signalMapper::toSummary)
+        return signalRepository.findByAuthorId(userId).stream()
+                .map(s -> toSummary(s))
                 .collect(Collectors.toList());
     }
 
-    public Page<SignalSummaryResponse> getPublicSignals(int page, int size, String sort) {
-        Sort sortOrder = sort != null && sort.equals("oldest")
-                ? Sort.by("createdAt").ascending()
-                : Sort.by("createdAt").descending();
-        Pageable pageable = PageRequest.of(page, size, sortOrder);
-        return signalRepository.findPublic(pageable).map(signalMapper::toSummary);
-    }
-
-    public Page<SignalSummaryResponse> getPublicByDomainSlug(String slug, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return signalRepository.findPublicByDomainSlug(slug, pageable).map(signalMapper::toSummary);
-    }
-
-    public Page<SignalSummaryResponse> searchSignals(String q, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return signalRepository.search(q, pageable).map(signalMapper::toSummary);
-    }
-
-    private Signal getOwnedDraft(UUID signalId, UUID userId) {
+    @Transactional
+    public void deleteSignal(UUID signalId, UUID userId) {
         Signal signal = signalRepository.findById(signalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Signal not found"));
-        if (!signal.getSubmitter().getId().equals(userId)) {
+        if (!signal.getAuthor().getId().equals(userId)) {
             throw new UnauthorizedException("Not your signal");
         }
-        if (signal.getStatus() != SignalStatus.DRAFT) {
-            throw new IllegalArgumentException("Signal is not a draft");
+        if (signal.getStatus() != SignalStatus.OPEN) {
+            throw new IllegalArgumentException("Only OPEN signals can be deleted");
         }
-        return signal;
+        signalRepository.delete(signal);
+    }
+
+    // ---- helpers ----
+
+    private SignalResponse toResponse(Signal s, UUID currentUserId) {
+        SignalResponse r = new SignalResponse();
+        r.setId(s.getId());
+        r.setTitle(s.getTitle());
+        r.setDescription(s.getDescription());
+        r.setCategory(s.getCategory());
+        r.setStatus(s.getStatus());
+        r.setDiscussionStart(s.getDiscussionStart());
+        r.setDiscussionEnd(s.getDiscussionEnd());
+        r.setCreatedAt(s.getCreatedAt());
+        r.setUpdatedAt(s.getUpdatedAt());
+        r.setAuthorId(s.getAuthor().getId());
+        r.setAuthorUsername(s.getAuthor().getUsername());
+
+        r.setTags(s.getSignalTags().stream()
+                .map(st -> st.getTag().getName())
+                .collect(Collectors.toList()));
+
+        r.setSources(s.getSources().stream().map(src -> {
+            SignalResponse.SourceResponse sr = new SignalResponse.SourceResponse();
+            sr.setId(src.getId());
+            sr.setUrl(src.getUrl());
+            sr.setTitle(src.getTitle());
+            sr.setDescription(src.getDescription());
+            return sr;
+        }).collect(Collectors.toList()));
+
+        long up = signalVoteRepository.countBySignalIdAndVoteType(s.getId(), VoteType.UP);
+        long down = signalVoteRepository.countBySignalIdAndVoteType(s.getId(), VoteType.DOWN);
+        long total = up + down;
+        r.setUpVotes(up);
+        r.setDownVotes(down);
+        r.setTotalVotes(total);
+        r.setUpPercent(total > 0 ? Math.round((up * 100.0 / total) * 10.0) / 10.0 : 0);
+        r.setDownPercent(total > 0 ? Math.round((down * 100.0 / total) * 10.0) / 10.0 : 0);
+
+        if (currentUserId != null) {
+            signalVoteRepository.findBySignalIdAndUserId(s.getId(), currentUserId)
+                    .ifPresent(v -> r.setMyVote(v.getVoteType().name()));
+        }
+
+        return r;
+    }
+
+    private SignalSummaryResponse toSummary(Signal s) {
+        SignalSummaryResponse r = new SignalSummaryResponse();
+        r.setId(s.getId());
+        r.setTitle(s.getTitle());
+        r.setCategory(s.getCategory());
+        r.setStatus(s.getStatus());
+        r.setDiscussionEnd(s.getDiscussionEnd());
+        r.setCreatedAt(s.getCreatedAt());
+        r.setAuthorUsername(s.getAuthor().getUsername());
+        r.setTags(s.getSignalTags().stream()
+                .map(st -> st.getTag().getName())
+                .collect(Collectors.toList()));
+
+        long up = signalVoteRepository.countBySignalIdAndVoteType(s.getId(), VoteType.UP);
+        long down = signalVoteRepository.countBySignalIdAndVoteType(s.getId(), VoteType.DOWN);
+        long total = up + down;
+        r.setUpVotes(up);
+        r.setDownVotes(down);
+        r.setTotalVotes(total);
+        r.setUpPercent(total > 0 ? Math.round((up * 100.0 / total) * 10.0) / 10.0 : 0);
+        return r;
     }
 }

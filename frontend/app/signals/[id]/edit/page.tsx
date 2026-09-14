@@ -43,7 +43,7 @@ export default function EditSignalPage() {
         domainId: sig.domainId,
         resolutionType: sig.resolutionType,
         resolutionCriteria: sig.resolutionCriteria,
-        resolutionDate: sig.resolutionDate.slice(0, 16),
+        resolutionDate: (sig.discussionEnd || sig.resolutionDate).slice(0, 16),
         visibility: sig.visibility,
       });
     }).catch(() => setError("Signal not found"));

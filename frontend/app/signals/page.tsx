@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
 import { getPublicFeed, searchSignals, SignalSummary } from "@/service/signals";
@@ -11,6 +11,11 @@ const serif = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600", "700"]
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 
 const STATUS_PILL: Record<string, { label: string; cls: string }> = {
+  OPEN:                { label: "OPEN",      cls: "bg-[#EAF3EC] text-[#2F5D3A]" },
+  PROCESSING:          { label: "PROCESSING",cls: "bg-[#FDF8E7] text-[#7A6A2E]" },
+  CLOSED:              { label: "CLOSED",    cls: "bg-[#E8EBF3] text-[#1C2541]" },
+  FAILED:              { label: "FAILED",    cls: "bg-[#FBEDEC] text-[#7A2E2E]" },
+  ARCHIVED:            { label: "ARCHIVED",  cls: "bg-[#EFEEE8] text-[#5B6472]" },
   PENDING_VALIDATION: { label: "PENDING",   cls: "bg-[#FDF8E7] text-[#7A6A2E]" },
   VALIDATED:          { label: "VALIDATED", cls: "bg-[#EAF3EC] text-[#2F5D3A]" },
   REJECTED:           { label: "REJECTED",  cls: "bg-[#FBEDEC] text-[#7A2E2E]" },
@@ -20,6 +25,7 @@ const STATUS_PILL: Record<string, { label: string; cls: string }> = {
 
 export default function PublicFeedPage() {
   const { isAuthenticated } = useAuth();
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [signals, setSignals] = useState<SignalSummary[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [page, setPage] = useState(0);
@@ -68,7 +74,7 @@ export default function PublicFeedPage() {
                 Claims, evidence, and accountable predictions from the room.
               </p>
             </div>
-            {isAuthenticated && (
+            {mounted && isAuthenticated && (
               <Link
                 href="/signals/create"
                 className={`${mono.className} shrink-0 border border-[#1C2541] bg-[#1C2541] px-3 py-2 text-[10px] tracking-widest text-white hover:bg-[#141B32] transition-colors`}
@@ -143,7 +149,10 @@ export default function PublicFeedPage() {
           <div className="flex flex-col gap-3">
             {signals.map((s) => {
               const pill = STATUS_PILL[s.status];
-              const initials = s.submitterUsername.slice(0, 2).toUpperCase();
+              const username = s.authorUsername || s.submitterUsername || "Anonymous";
+              const category = s.category || s.domainName || "General";
+              const discussionEnd = s.discussionEnd || s.resolutionDate;
+              const initials = username.slice(0, 2).toUpperCase();
               return (
                 <Link
                   key={s.id}
@@ -156,9 +165,9 @@ export default function PublicFeedPage() {
                         {initials}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold">{s.submitterUsername}</p>
+                        <p className="truncate text-[13px] font-semibold">{username}</p>
                         <p className={`${mono.className} text-[10px] tracking-wide text-[#5B6472]`}>
-                          {s.domainName} · {new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {category} · {new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </p>
                       </div>
                     </div>
@@ -170,7 +179,7 @@ export default function PublicFeedPage() {
                   <div className={`${mono.className} mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] tracking-wide text-[#5B6472]`}>
                     <span>
                       resolves{" "}
-                      {new Date(s.resolutionDate).toLocaleDateString("en-US", {
+                      {discussionEnd && new Date(discussionEnd).toLocaleDateString("en-US", {
                         day: "2-digit", month: "short", year: "numeric",
                       })}
                     </span>

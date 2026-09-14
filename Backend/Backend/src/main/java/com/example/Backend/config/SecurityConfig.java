@@ -9,6 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -32,19 +33,26 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                    .authenticationEntryPoint((request, response, exception) ->
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/health", "/api/auth/**").permitAll()
-                    .requestMatchers("/api/signals/my-validations", "/api/users/me/**").authenticated()
+                        .requestMatchers("/api/health").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                        .requestMatchers("/api/signals/my-validations", "/api/users/me/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/signals").authenticated()
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.POST, "/api/signals/*/resolve").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.POST, "/api/signals/*/approve", "/api/signals/*/reject")
-                    .hasAnyRole("CONSULTANT", "ADMIN")
-                    .requestMatchers(HttpMethod.POST, "/api/signals/*/validate")
-                    .hasAnyRole("CONSULTANT", "ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/api/signals", "/api/signals/**", "/api/domains/**", "/api/users/*")
-                    .permitAll()
-                    .anyRequest().authenticated()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/reports").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/signals/*/resolve").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/signals/*/approve", "/api/signals/*/reject")
+                        .hasAnyRole("CONSULTANT", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/signals/*/validate")
+                        .hasAnyRole("CONSULTANT", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/signals", "/api/signals/**", "/api/domains/**", "/api/users/*")
+                        .permitAll()
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

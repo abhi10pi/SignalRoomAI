@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
-import { createSignal, CreateSignalPayload, ResolutionType, Visibility } from "@/service/signals";
+import { createSignal, CreateSignalPayload } from "@/service/signals";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
-import api from "@/service/api";
 
 const serif = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600", "700"] });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
-
-interface Domain { id: string; name: string; slug: string; }
 
 const inputCls = (mono: { className: string }) =>
   `${mono.className} w-full border border-[#DEDCD3] bg-[#FCFBF8] px-3 py-2.5 text-[13px] tracking-wide outline-none focus:border-[#1C2541] transition-colors`;
@@ -19,26 +16,20 @@ const inputCls = (mono: { className: string }) =>
 export default function CreateSignalPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [domains, setDomains] = useState<Domain[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState<CreateSignalPayload>({
     title: "",
     description: "",
-    domainId: "",
-    resolutionType: "NEWS_VERIFIABLE",
-    resolutionCriteria: "",
-    resolutionDate: "",
-    visibility: "PUBLIC",
+    category: "Technology",
+    tags: [],
+    sources: [],
   });
 
-  useEffect(() => {
-    if (!isAuthenticated) { router.push("/auth/login"); return; }
-    api.get<Domain[]>("/api/domains").then((r) => setDomains(r.data)).catch(() => {});
-  }, [isAuthenticated, router]);
+  if (!isAuthenticated) { router.push("/auth/login"); }
 
-  const set = (k: keyof CreateSignalPayload, v: string) =>
+  const set = (k: keyof CreateSignalPayload, v: string | string[]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,10 +37,7 @@ export default function CreateSignalPage() {
     setError("");
     setLoading(true);
     try {
-      const signal = await createSignal({
-        ...form,
-        resolutionDate: new Date(form.resolutionDate).toISOString().slice(0, 19),
-      });
+      const signal = await createSignal(form);
       router.push(`/signals/${signal.id}`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -71,7 +59,7 @@ export default function CreateSignalPage() {
         </p>
         <h1 className="text-3xl font-semibold tracking-tight mb-1">Create Signal</h1>
         <p className="mb-8 text-[14px] text-[#5B6472]">
-          Saved as a draft — publish when you&apos;re ready.
+          Discussion stays open for seven days, then is archived for everyone to read.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -84,7 +72,7 @@ export default function CreateSignalPage() {
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               className={ic}
-              placeholder="What is your prediction?"
+              placeholder="State a claim, question, or opinion"
             />
           </div>
 
@@ -102,63 +90,20 @@ export default function CreateSignalPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>
-                DOMAIN
-              </label>
-              <select required value={form.domainId} onChange={(e) => set("domainId", e.target.value)} className={ic}>
-                <option value="">Select…</option>
-                {domains.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>
-                RESOLUTION TYPE
-              </label>
-              <select value={form.resolutionType} onChange={(e) => set("resolutionType", e.target.value as ResolutionType)} className={ic}>
-                <option value="NEWS_VERIFIABLE">News Verifiable</option>
-                <option value="QUANTITATIVE">Quantitative</option>
-                <option value="SUBJECTIVE">Subjective</option>
-              </select>
-            </div>
-          </div>
-
           <div>
-            <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>
-              RESOLUTION CRITERIA
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={form.resolutionCriteria}
-              onChange={(e) => set("resolutionCriteria", e.target.value)}
-              className={`${ic} resize-none`}
-              placeholder="How will this signal be resolved? Be specific."
-            />
+            <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>CATEGORY</label>
+            <select required value={form.category} onChange={(e) => set("category", e.target.value)} className={ic}>
+              {['Technology', 'AI', 'Science', 'Finance', 'Business', 'Society', 'Politics', 'Health', 'Environment', 'Other'].map((category) => <option key={category}>{category}</option>)}
+            </select>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>TAGS</label>
+            <input value={form.tags.join(", ")} onChange={(e) => set("tags", e.target.value.split(",").map((tag) => tag.trim()).filter(Boolean))} className={ic} placeholder="remote-work, productivity" />
+          </div>
+          <div>
             <div>
-              <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>
-                RESOLUTION DATE
-              </label>
-              <input
-                required
-                type="datetime-local"
-                value={form.resolutionDate}
-                onChange={(e) => set("resolutionDate", e.target.value)}
-                className={ic}
-              />
-            </div>
-            <div>
-              <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>
-                VISIBILITY
-              </label>
-              <select value={form.visibility} onChange={(e) => set("visibility", e.target.value as Visibility)} className={ic}>
-                <option value="PUBLIC">Public</option>
-                <option value="PRIVATE">Private</option>
-              </select>
+              <label className={`${mono.className} mb-1.5 block text-[10px] tracking-widest text-[#5B6472]`}>OPTIONAL SOURCE URL</label>
+              <input value={form.sources[0]?.url || ""} onChange={(e) => setForm((f) => ({ ...f, sources: e.target.value ? [{ url: e.target.value }] : [] }))} className={ic} placeholder="https://example.com/source" type="url" />
             </div>
           </div>
 
@@ -174,7 +119,7 @@ export default function CreateSignalPage() {
               disabled={loading}
               className={`${mono.className} flex-1 border border-[#1C2541] bg-[#1C2541] py-3 text-[12px] tracking-widest text-[#F5F5F1] transition-colors hover:bg-[#141B32] disabled:opacity-50`}
             >
-              {loading ? "SAVING…" : "SAVE AS DRAFT"}
+              {loading ? "PUBLISHING…" : "PUBLISH SIGNAL"}
             </button>
             <button
               type="button"

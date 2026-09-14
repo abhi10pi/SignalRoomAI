@@ -22,12 +22,12 @@ public class ExpiredSignalScheduler {
     @Scheduled(fixedDelayString = "${app.scheduler.expired-signals-delay-ms:60000}")
     @Transactional
     public void markExpiredSignals() {
-        List<Signal> expiredSignals = signalRepository.findByStatusInAndResolutionDateBefore(
-                List.of(SignalStatus.PENDING_VALIDATION, SignalStatus.VALIDATED),
-                LocalDateTime.now());
+        List<Signal> expiredSignals = signalRepository.findByStatusAndDiscussionEndBefore(
+            SignalStatus.OPEN,
+            LocalDateTime.now());
 
         for (Signal signal : expiredSignals) {
-            signal.setStatus(SignalStatus.EXPIRED_UNRESOLVED);
+            signal.setStatus(SignalStatus.PROCESSING);
         }
 
         if (!expiredSignals.isEmpty()) {

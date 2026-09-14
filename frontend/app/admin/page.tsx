@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
-import { getPendingPromotionRequests, approvePromotionRequest, rejectPromotionRequest, PromotionRequest } from "@/service/admin";
+import { getPendingPromotionRequests, approvePromotionRequest, rejectPromotionRequest, PromotionRequest, getPendingReports, reviewReport, retryAi, Report } from "@/service/admin";
 import api from "@/service/api";
 
 const serif = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600", "700"] });
@@ -28,9 +28,10 @@ export default function AdminPage() {
   
   const [promotionRequests, setPromotionRequests] = useState<PromotionRequest[]>([]);
   const [signals, setSignals] = useState<SignalAdminView[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [loadingPromotions, setLoadingPromotions] = useState(true);
   const [loadingSignals, setLoadingSignals] = useState(true);
-  const [activeTab, setActiveTab] = useState<"promotions" | "signals">("signals");
+  const [activeTab, setActiveTab] = useState<"promotions" | "signals" | "reports">("signals");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -45,7 +46,20 @@ export default function AdminPage() {
 
     loadPromotionRequests();
     loadSignals();
+    loadReports();
   }, [isAuthenticated, user]);
+
+  const loadReports = async () => {
+    try { const data = await getPendingReports(); setReports(data); } catch { /* ignore */ }
+  };
+
+  const handleReviewReport = async (id: string, action: "action" | "dismiss") => {
+    try { await reviewReport(id, action); setReports((r) => r.filter((x) => x.id !== id)); } catch { /* ignore */ }
+  };
+
+  const handleRetryAi = async (signalId: string) => {
+    try { await retryAi(signalId); alert("AI retry triggered."); } catch { alert("Retry failed."); }
+  };
 
   const loadPromotionRequests = async () => {
     try {
@@ -119,6 +133,16 @@ export default function AdminPage() {
             }`}
           >
             Promotions ({promotionRequests.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("reports")}
+            className={`px-4 py-2 font-semibold border-b-2 ${
+              activeTab === "reports"
+                ? "border-[#1C2541] text-[#1C2541]"
+                : "border-transparent text-gray-500 hover:text-[#1C2541]"
+            }`}
+          >
+            Reports ({reports.length})
           </button>
         </div>
 
@@ -265,6 +289,50 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+        {/* Reports Tab */}
+        {activeTab === "reports" && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Pending Reports ({reports.length})</h2>
+            {reports.length === 0 ? (
+              <p className="text-gray-500">No pending reports</p>
+            ) : (
+              <div className="grid gap-4">
+                {reports.map((report) => (
+                  <div key={report.id} className="bg-white border border-[#DEDCD3] p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className={`${mono.className} text-xs text-[#5B6472]`}>Reported by {report.reporter?.username} · {new Date(report.createdAt).toLocaleDateString()}</p>
+                        <p className="mt-1 font-semibold">{report.reason}</p>
+                        {report.detail && <p className="mt-1 text-sm text-gray-600">{report.detail}</p>}
+                        <p className={`${mono.className} mt-1 text-xs text-[#5B6472]`}>
+                          {report.signalId && `Signal: ${report.signalId}`}
+                          {report.opinionId && `Opinion: ${report.opinionId}`}
+                          {report.commentId && `Comment: ${report.commentId}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleReviewReport(report.id, "action")} className="px-3 py-1 bg-red-500 text-white text-xs">Hide Content</button>
+                        <button onClick={() => handleReviewReport(report.id, "dismiss")} className="px-3 py-1 border border-[#DEDCD3] text-xs">Dismiss</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <h2 className="mt-10 text-2xl font-bold mb-4">Retry Failed AI</h2>
+            <div className="flex gap-2">
+              <input id="retry-signal-id" className="border border-[#DEDCD3] px-3 py-2 text-sm flex-1" placeholder="Signal ID" />
+              <button
+                className="bg-[#1C2541] text-white px-4 py-2 text-sm"
+                onClick={() => {
+                  const el = document.getElementById("retry-signal-id") as HTMLInputElement;
+                  if (el?.value) handleRetryAi(el.value);
+                }}
+              >Retry AI</button>
+            </div>
           </div>
         )}
       </main>

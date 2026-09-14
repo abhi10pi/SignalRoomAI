@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
@@ -17,6 +17,11 @@ const serif = Source_Serif_4({ subsets: ["latin"], weight: ["400", "600", "700"]
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"] });
 
 const STATUS_PILL: Record<string, { label: string; cls: string }> = {
+  OPEN:                { label: "OPEN",              cls: "bg-[#EAF3EC] text-[#2F5D3A]" },
+  PROCESSING:          { label: "PROCESSING",        cls: "bg-[#FDF8E7] text-[#7A6A2E]" },
+  CLOSED:              { label: "CLOSED",            cls: "bg-[#E8EBF3] text-[#1C2541]" },
+  FAILED:              { label: "FAILED",            cls: "bg-[#FBEDEC] text-[#7A2E2E]" },
+  ARCHIVED:            { label: "ARCHIVED",          cls: "bg-[#EFEEE8] text-[#5B6472]" },
   DRAFT:               { label: "DRAFT",              cls: "bg-[#EFEEE8] text-[#5B6472]" },
   PENDING_VALIDATION:  { label: "PENDING",            cls: "bg-[#FDF8E7] text-[#7A6A2E]" },
   VALIDATED:           { label: "VALIDATED",          cls: "bg-[#EAF3EC] text-[#2F5D3A]" },
@@ -25,7 +30,7 @@ const STATUS_PILL: Record<string, { label: string; cls: string }> = {
   EXPIRED_UNRESOLVED:  { label: "EXPIRED",            cls: "bg-[#EFEEE8] text-[#5B6472]" },
 };
 
-const TABS = ["ALL", "DRAFT", "PENDING_VALIDATION", "VALIDATED", "EVALUATED", "REJECTED"] as const;
+const TABS = ["ALL", "DRAFT", "OPEN", "PROCESSING", "CLOSED", "FAILED"] as const;
 type Tab = typeof TABS[number];
 
 export default function HomePage() {
@@ -37,7 +42,7 @@ export default function HomePage() {
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const mounted = typeof window !== "undefined";
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   function load() {
     getMySignals()
@@ -110,7 +115,7 @@ export default function HomePage() {
 
         {/* Stats row */}
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-8">
-          {(["DRAFT", "PENDING_VALIDATION", "VALIDATED", "EVALUATED", "REJECTED"] as const).map((s) => {
+          {(["DRAFT", "OPEN", "PROCESSING", "CLOSED", "FAILED"] as const).map((s) => {
             const count = signals.filter((sig) => sig.status === s).length;
             const pill = STATUS_PILL[s];
             return (
@@ -122,7 +127,7 @@ export default function HomePage() {
                 } bg-[#FCFBF8]`}
               >
                 <span className={`${mono.className} text-xl font-semibold text-[#1C2541]`}>{count}</span>
-                <span className={`${mono.className} mt-1 text-[9px] tracking-widest ${pill.cls.split(" ")[1]}`}>
+                <span className={`${mono.className} mt-1 text-[9px] tracking-widest ${pill?.cls || "text-[#5B6472]"}`}>
                   {pill.label}
                 </span>
               </button>
@@ -151,7 +156,7 @@ export default function HomePage() {
                   : "text-[#5B6472] hover:text-[#1C2541]"
               }`}
             >
-              {tab === "PENDING_VALIDATION" ? "PENDING" : tab.replace("_", " ")} ({countFor(tab)})
+              {tab.replace("_", " ")} ({countFor(tab)})
             </button>
           ))}
         </div>
@@ -203,13 +208,13 @@ export default function HomePage() {
                         </h2>
                       </Link>
                       <div className={`${mono.className} mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] tracking-wide text-[#5B6472]`}>
-                        <span>{s.domainName}</span>
+                        <span>{s.category || s.domainName || "General"}</span>
                         <span>·</span>
                         <span>
                           resolves{" "}
-                          {new Date(s.resolutionDate).toLocaleDateString("en-US", {
+                          {s.discussionEnd || s.resolutionDate ? new Date(s.discussionEnd || s.resolutionDate!).toLocaleDateString("en-US", {
                             day: "2-digit", month: "short", year: "numeric",
-                          })}
+                          }) : "no closing date"}
                         </span>
                         {s.submittedAt && (
                           <>
@@ -226,8 +231,8 @@ export default function HomePage() {
                     </div>
 
                     {/* Right: status pill */}
-                    <span className={`${mono.className} shrink-0 rounded-sm px-2 py-0.5 text-[9px] tracking-widest ${pill.cls}`}>
-                      {pill.label}
+                    <span className={`${mono.className} shrink-0 rounded-sm px-2 py-0.5 text-[9px] tracking-widest ${pill?.cls || "bg-[#EFEEE8] text-[#5B6472]"}`}>
+                      {pill?.label || s.status}
                     </span>
                   </div>
 
